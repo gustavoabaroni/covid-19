@@ -159,7 +159,7 @@
       ocorrencias: visiveis(IRAPUA.todasOcorrencias()),
       aoFalharBase: () => {
         const a = $("#aviso-mapa");
-        a.textContent = "Mapa base indisponível (sem conexão com o OpenStreetMap). Mostrando apenas as ocorrências.";
+        a.textContent = IRAPUA.config.avisoSemMapa || "Mapa base indisponível (sem conexão com o OpenStreetMap). Mostrando apenas as ocorrências.";
         a.style.display = "block";
       },
       aoFicarPronto: (m) => {

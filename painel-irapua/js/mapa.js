@@ -80,6 +80,19 @@ window.IRAPUA = window.IRAPUA || {};
     } catch (e) { console.warn("Terreno indisponível", e); }
   }
 
+  // Sem mapa base: grade de 100 m em volta do centro para dar noção de escala.
+  function adicionarGrade(map) {
+    const [lon0, lat0] = IRAPUA.config.centro;
+    const dLat = 100 / 111320, dLon = 100 / (111320 * Math.cos((lat0 * Math.PI) / 180));
+    const n = 30, linhas = [];
+    for (let i = -n; i <= n; i++) {
+      linhas.push({ type: "Feature", properties: { eixo: i === 0 }, geometry: { type: "LineString", coordinates: [[lon0 + i * dLon, lat0 - n * dLat], [lon0 + i * dLon, lat0 + n * dLat]] } });
+      linhas.push({ type: "Feature", properties: { eixo: i === 0 }, geometry: { type: "LineString", coordinates: [[lon0 - n * dLon, lat0 + i * dLat], [lon0 + n * dLon, lat0 + i * dLat]] } });
+    }
+    map.addSource("grade", { type: "geojson", data: { type: "FeatureCollection", features: linhas } });
+    map.addLayer({ id: "grade", type: "line", source: "grade", paint: { "line-color": "#38bdf8", "line-opacity": ["case", ["get", "eixo"], 0.35, 0.12], "line-width": 1 } });
+  }
+
   function adicionarOcorrencias(map, lista) {
     const g = geojsonOcorrencias(lista);
     map.addSource("oc-colunas", { type: "geojson", data: g.colunas });
@@ -114,7 +127,7 @@ window.IRAPUA = window.IRAPUA || {};
     const cfg = IRAPUA.config;
     const map = new maplibregl.Map({
       container: opcoes.container,
-      style: cfg.estiloMapa,
+      style: cfg.semMapaBase ? ESTILO_OFFLINE : cfg.estiloMapa,
       center: opcoes.centro || cfg.centro,
       zoom: opcoes.zoom ?? cfg.zoom,
       pitch: opcoes.pitch ?? cfg.pitch,
@@ -125,7 +138,7 @@ window.IRAPUA = window.IRAPUA || {};
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
 
     let pronto = false;
-    let usouOffline = false;
+    let usouOffline = !!cfg.semMapaBase;
     const aoCarregar = () => {
       if (pronto) return;
       pronto = true;
@@ -133,6 +146,8 @@ window.IRAPUA = window.IRAPUA || {};
         escurecerBase(map);
         realcarPredios(map);
         if (opcoes.terreno !== false) adicionarTerreno(map);
+      } else {
+        adicionarGrade(map);
       }
       if (opcoes.ocorrencias) adicionarOcorrencias(map, opcoes.ocorrencias);
       opcoes.aoFicarPronto && opcoes.aoFicarPronto(map, { offline: usouOffline });
@@ -147,7 +162,8 @@ window.IRAPUA = window.IRAPUA || {};
       map.once("style.load", aoCarregar);
       opcoes.aoFalharBase && opcoes.aoFalharBase();
     };
-    const timer = setTimeout(irOffline, 8000);
+    if (cfg.semMapaBase) setTimeout(() => opcoes.aoFalharBase && opcoes.aoFalharBase(), 0);
+    const timer = cfg.semMapaBase ? null : setTimeout(irOffline, 8000);
     map.on("load", () => clearTimeout(timer));
     map.on("error", (e) => {
       const msg = String((e && e.error && e.error.message) || "");
