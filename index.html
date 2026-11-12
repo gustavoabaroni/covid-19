@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Respira</title>
+<title>Pulmão Limpo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -136,7 +136,7 @@
   <section class="screen" id="s-onboard">
     <div class="center" style="margin-top:10px">
       <div class="lung-wrap" id="lung-onboard"></div>
-      <h1 style="margin-top:6px">Bem-vindo ao <span style="color:var(--brand)">Respira</span></h1>
+      <h1 style="margin-top:6px">Bem-vindo ao <span style="color:var(--brand)">Pulmão Limpo</span></h1>
       <p class="muted" style="margin-top:6px">Vamos acompanhar juntos cada passo até você parar de fumar. Seu pulmão vai mostrar a sua evolução.</p>
     </div>
     <form id="f-onboard" class="card" style="margin-top:20px">
@@ -171,7 +171,7 @@
   <!-- ============ HOME / PULMÃO ============ -->
   <section class="screen" id="s-home">
     <div class="top">
-      <div class="logo">Respira<span>.</span></div>
+      <div class="logo">Pulmão Limpo<span>.</span></div>
       <div class="chip" id="h-dia">Dia 0</div>
     </div>
     <p class="muted" id="h-ola">Olá!</p>
@@ -296,7 +296,7 @@
       <button class="btn ghost" id="b-print">🖨️ Imprimir</button>
       <button class="btn" id="b-share">Compartilhar</button>
     </div>
-    <p class="disclaimer">O Respira não substitui a consulta. Os medicamentos só devem ser usados com orientação e receita de um profissional de saúde.</p>
+    <p class="disclaimer">O Pulmão Limpo não substitui a consulta. Os medicamentos só devem ser usados com orientação e receita de um profissional de saúde.</p>
   </section>
 
   <!-- ============ PERFIL ============ -->
@@ -344,7 +344,7 @@
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  const KEY = 'respira:v1';
+  const KEY = 'pulmao-limpo:v1';
   const DAY = 86400000;
   const todayKey = () => new Date().toISOString().slice(0, 10);
 
@@ -360,7 +360,7 @@
   /* ---------------- Áudio (IndexedDB) ---------------- */
   const db = new Promise(res => {
     try {
-      const r = indexedDB.open('respira-audio', 1);
+      const r = indexedDB.open('pulmao-limpo-audio', 1);
       r.onupgradeneeded = () => r.result.createObjectStore('a');
       r.onsuccess = () => res(r.result);
       r.onerror = () => res(null);
