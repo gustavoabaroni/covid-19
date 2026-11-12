@@ -1,2 +1,2 @@
-# covid-19
+# pulmao-limpo
 Site informativo para a pandemia 
