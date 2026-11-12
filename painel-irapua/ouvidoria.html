@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ouvidoria Irapuã</title>
+  <meta name="description" content="Registre reclamações, sugestões e avalie os serviços da Prefeitura de Irapuã/SP.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="css/painel.css">
+</head>
+<body class="ouvidoria">
+  <main class="ouv">
+    <header>
+      <div class="brasao" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#6366f1);display:grid;place-items:center;font-weight:800">I</div>
+      <div>
+        <h1>Ouvidoria de Irapuã</h1>
+        <p>Conte o que precisa melhorar na cidade. Sua mensagem vai direto para o painel da prefeitura.</p>
+      </div>
+    </header>
+
+    <div class="ok-msg painel" id="ok" role="status"></div>
+
+    <form class="form painel" id="form" novalidate>
+      <div class="campo">
+        <label>1. Qual é o assunto?</label>
+        <div class="categorias" id="categorias"></div>
+      </div>
+
+      <div class="campo">
+        <label for="titulo">2. Resumo em poucas palavras</label>
+        <input id="titulo" maxlength="80" required placeholder="Ex.: Buraco grande na rua da escola">
+      </div>
+
+      <div class="campo">
+        <label for="descricao">3. Descreva o problema</label>
+        <textarea id="descricao" maxlength="1000" placeholder="O que está acontecendo, desde quando, quem é afetado..."></textarea>
+      </div>
+
+      <div class="campo">
+        <label>4. Onde fica? Toque no mapa para marcar o local</label>
+        <div id="mini-mapa"></div>
+        <div class="dica" id="dica-local">Nenhum local marcado ainda.</div>
+        <div class="acoes" style="margin-top:6px"><button type="button" class="btn" id="btn-gps">📍 Usar minha localização</button></div>
+      </div>
+
+      <div class="campo">
+        <label for="urgencia">5. Qual a urgência?</label>
+        <select id="urgencia">
+          <option value="1">Baixa: pode esperar</option>
+          <option value="2" selected>Média: precisa de atenção</option>
+          <option value="3">Alta: risco para pessoas</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>6. Como você avalia esse serviço da prefeitura hoje?</label>
+        <div class="estrelas" id="estrelas" role="radiogroup" aria-label="Nota de 1 a 5"></div>
+      </div>
+
+      <div class="campo">
+        <label for="contato">7. Contato (opcional, não aparece no mapa)</label>
+        <input id="contato" maxlength="80" placeholder="Telefone ou e-mail, se quiser retorno">
+      </div>
+
+      <p class="lgpd">Seus dados de contato são usados apenas para retorno da prefeitura, conforme a LGPD (Lei 13.709/2018). Você pode registrar de forma anônima. <b>Protótipo:</b> nesta versão as mensagens ficam salvas neste navegador.</p>
+
+      <div class="acoes">
+        <button type="submit" class="btn primario">Enviar manifestação</button>
+        <a class="btn" href="index.html">Ver painel</a>
+      </div>
+    </form>
+
+    <section class="painel secao" style="margin-top:14px">
+      <h2>Dados do protótipo</h2>
+      <div class="acoes">
+        <button class="btn" id="btn-exportar">Exportar JSON</button>
+        <label class="btn" style="cursor:pointer">Importar JSON<input type="file" id="arq" accept="application/json" hidden></label>
+        <button class="btn" id="btn-limpar">Apagar tudo</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/ouvidoria.js"></script>
+  <script src="js/mapa.js"></script>
+  <script>
+  (function () {
+    const $ = (s) => document.querySelector(s);
+    let local = null, nota = 0, marcador = null, mapa = null;
+
+    $("#categorias").innerHTML = Object.entries(IRAPUA.categorias).map(([k, c], i) =>
+      `<label><input type="radio" name="cat" value="${k}"${i === 0 ? " checked" : ""}><span>${c.icone} ${c.nome}</span></label>`).join("");
+
+    function desenharEstrelas() {
+      $("#estrelas").innerHTML = [1, 2, 3, 4, 5].map((n) =>
+        `<button type="button" role="radio" aria-checked="${n === nota}" aria-label="${n} estrela(s)" data-n="${n}" class="${n <= nota ? "on" : ""}">★</button>`).join("");
+    }
+    desenharEstrelas();
+    $("#estrelas").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { nota = Number(b.dataset.n); desenharEstrelas(); } });
+
+    function marcar(lon, lat) {
+      local = { lon, lat };
+      $("#dica-local").textContent = `Local marcado: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      if (!mapa) return;
+      if (marcador) marcador.setLngLat([lon, lat]);
+      else marcador = new maplibregl.Marker({ color: "#38bdf8" }).setLngLat([lon, lat]).addTo(mapa);
+    }
+
+    if (window.maplibregl) {
+      mapa = IRAPUA.criarMapa({ container: "mini-mapa", pitch: 0, bearing: 0, zoom: 14.5, terreno: false });
+      mapa.on("click", (e) => marcar(e.lngLat.lng, e.lngLat.lat));
+    } else {
+      $("#mini-mapa").innerHTML = '<p class="dica" style="padding:12px">Mapa indisponível. Use o botão de localização ou descreva o endereço.</p>';
+    }
+
+    $("#btn-gps").addEventListener("click", () => {
+      if (!navigator.geolocation) return alert("Seu aparelho não permite localização.");
+      navigator.geolocation.getCurrentPosition(
+        (p) => { marcar(p.coords.longitude, p.coords.latitude); mapa && mapa.flyTo({ center: [p.coords.longitude, p.coords.latitude], zoom: 16 }); },
+        () => alert("Não foi possível obter sua localização.")
+      );
+    });
+
+    $("#form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const titulo = $("#titulo").value.trim();
+      if (!titulo) { $("#titulo").focus(); return alert("Escreva um resumo do problema."); }
+      const pos = local || { lon: IRAPUA.config.centro[0], lat: IRAPUA.config.centro[1] };
+      const salvo = IRAPUA.armazenamento.adicionar({
+        categoria: document.querySelector('input[name="cat"]:checked').value,
+        titulo, descricao: $("#descricao").value.trim(),
+        lon: pos.lon, lat: pos.lat, localAproximado: !local,
+        prioridade: Number($("#urgencia").value),
+        nota: nota || null,
+        contato: $("#contato").value.trim() || null,
+      });
+      const ok = $("#ok");
+      ok.style.display = "block";
+      ok.innerHTML = salvo
+        ? `✅ Manifestação registrada com o protocolo <b>${salvo.id}</b>. Obrigado por ajudar Irapuã!`
+        : "Não foi possível salvar neste navegador (modo privado?). Tente novamente em outra janela.";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (salvo) {
+        e.target.reset(); nota = 0; desenharEstrelas(); local = null;
+        if (marcador) { marcador.remove(); marcador = null; }
+        $("#dica-local").textContent = "Nenhum local marcado ainda.";
+      }
+    });
+
+    $("#btn-exportar").addEventListener("click", () => {
+      const blob = new Blob([IRAPUA.armazenamento.exportar()], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "ouvidoria-irapua.json"; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    $("#arq").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      try { const n = IRAPUA.armazenamento.importar(await f.text()); alert(n + " manifestações no total."); }
+      catch (err) { alert("Arquivo inválido."); }
+    });
+    $("#btn-limpar").addEventListener("click", () => {
+      if (confirm("Apagar todas as manifestações salvas neste navegador?")) IRAPUA.armazenamento.limpar();
+    });
+  })();
+  </script>
+</body>
+</html>
