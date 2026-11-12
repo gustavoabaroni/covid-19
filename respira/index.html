@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Respira</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f7f8fa;
+    --line: #eceef2;
+    --text: #1d2430;
+    --muted: #7b8494;
+    --brand: #ff7d95;
+    --brand-soft: #ffe8ed;
+    --ok: #2fbf8f;
+    --ok-soft: #e3f7ef;
+    --warn: #f4a63a;
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font-family: "Nunito", system-ui, sans-serif; }
+  body { min-height: 100dvh; display: flex; justify-content: center; }
+  .app { width: 100%; max-width: 440px; min-height: 100dvh; position: relative; padding: 20px 16px 110px; }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; }
+  h2 { font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+  p { line-height: 1.5; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .screen { display: none; animation: fade .35s ease; }
+  .screen.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* Header */
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; }
+  .logo span { color: var(--brand); }
+  .chip { background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--muted); }
+
+  /* Lung */
+  .lung-wrap { position: relative; display: flex; justify-content: center; margin: 8px 0 4px; }
+  .lung-wrap svg { width: 78%; max-width: 300px; height: auto; overflow: visible; }
+  .breathe { transform-origin: 50% 60%; animation: breathe var(--breath, 4s) ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+  .score { text-align: center; margin-top: 4px; }
+  .score b { font-size: 44px; font-weight: 800; letter-spacing: -1px; }
+  .score small { display: block; color: var(--muted); font-weight: 700; font-size: 14px; }
+  .bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 14px 8px 0; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #b9a79d, var(--brand) 60%, var(--ok)); transition: width 1s ease; }
+
+  /* Cards */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0; }
+  .stat { background: var(--surface); border-radius: 16px; padding: 12px 8px; text-align: center; }
+  .stat b { display: block; font-size: 20px; font-weight: 800; }
+  .stat span { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .card.soft { background: var(--surface); border-color: transparent; }
+
+  /* Buttons & inputs */
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 0; border-radius: 16px; padding: 15px; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; background: var(--brand); color: #fff; text-decoration: none; transition: transform .1s; }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: var(--surface); color: var(--text); }
+  .btn.ok { background: var(--ok); }
+  .btn.small { padding: 10px 14px; font-size: 14px; width: auto; border-radius: 12px; }
+  .row { display: flex; gap: 10px; }
+  label { display: block; font-weight: 700; font-size: 14px; margin: 14px 0 6px; }
+  input, textarea, select { width: 100%; font: inherit; font-size: 16px; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--text); outline: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--brand); }
+  textarea { resize: vertical; min-height: 90px; }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper button { width: 48px; height: 48px; border-radius: 14px; border: 0; background: var(--surface); font-size: 22px; font-weight: 800; cursor: pointer; color: var(--text); }
+  .stepper input { text-align: center; font-weight: 800; font-size: 20px; }
+
+  .moods { display: flex; justify-content: space-between; gap: 6px; }
+  .mood { flex: 1; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 10px 0 8px; font-size: 26px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .mood small { font-size: 11px; color: var(--muted); font-weight: 700; }
+  .mood.sel { border-color: var(--brand); background: var(--brand-soft); }
+
+  /* Steps (encaminhamento) */
+  .step { display: flex; gap: 14px; align-items: flex-start; }
+  .step .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); font-weight: 800; display: grid; place-items: center; }
+  .step h3 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .step p { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .tag { background: var(--ok-soft); color: #1d8a66; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 99px; }
+
+  .receipt { border: 1.5px dashed #d9dde4; border-radius: var(--radius); padding: 18px; }
+  .receipt dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 14px; }
+  .receipt dt { color: var(--muted); }
+  .receipt dd { font-weight: 800; text-align: right; }
+
+  /* Timeline */
+  .mile { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center; }
+  .mile:last-child { border-bottom: 0; }
+  .dot { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--line); display: grid; place-items: center; font-size: 13px; color: #fff; }
+  .mile.done .dot { background: var(--ok); }
+  .mile b { font-size: 14px; display: block; }
+  .mile span { font-size: 13px; color: var(--muted); }
+
+  /* Diary */
+  .entry { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .entry:last-child { border-bottom: 0; }
+  .entry .h { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+  .entry p { font-size: 15px; }
+  .entry audio { width: 100%; margin-top: 8px; height: 36px; }
+  .rec { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .rec .pulse { width: 10px; height: 10px; border-radius: 50%; background: #e5484d; animation: blink 1s infinite; display: none; }
+  .rec.on .pulse { display: block; }
+  @keyframes blink { 50% { opacity: .2; } }
+
+  /* Nav */
+  nav.tabs { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 440px; background: rgba(255,255,255,.94); backdrop-filter: blur(10px); border-top: 1px solid var(--line); display: flex; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+  nav.tabs button { flex: 1; border: 0; background: none; font: inherit; font-size: 11px; font-weight: 800; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; cursor: pointer; }
+  nav.tabs button svg { width: 24px; height: 24px; }
+  nav.tabs button.active { color: var(--brand); }
+  nav.tabs.hidden { display: none; }
+
+  .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(20px); background: var(--text); color: #fff; padding: 12px 18px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: .3s; z-index: 10; }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
+  .disclaimer { font-size: 12px; color: var(--muted); text-align: center; margin-top: 18px; line-height: 1.5; }
+  .center { text-align: center; }
+
+  @media print {
+    nav.tabs, .no-print { display: none !important; }
+    .screen { display: none !important; }
+    #s-ajuda { display: block !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ ONBOARDING ============ -->
+  <section class="screen" id="s-onboard">
+    <div class="center" style="margin-top:10px">
+      <div class="lung-wrap" id="lung-onboard"></div>
+      <h1 style="margin-top:6px">Bem-vindo ao <span style="color:var(--brand)">Respira</span></h1>
+      <p class="muted" style="margin-top:6px">Vamos acompanhar juntos cada passo até você parar de fumar. Seu pulmão vai mostrar a sua evolução.</p>
+    </div>
+    <form id="f-onboard" class="card" style="margin-top:20px">
+      <label for="o-nome">Como podemos te chamar?</label>
+      <input id="o-nome" required placeholder="Seu nome" autocomplete="given-name">
+
+      <label>Quantos cigarros você fuma por dia?</label>
+      <div class="stepper">
+        <button type="button" data-step="-1">−</button>
+        <input id="o-cig" type="number" inputmode="numeric" min="1" max="100" value="10" required>
+        <button type="button" data-step="1">+</button>
+      </div>
+
+      <label for="o-anos">Há quantos anos você fuma?</label>
+      <input id="o-anos" type="number" inputmode="numeric" min="0" max="80" value="5" required>
+
+      <label for="o-primeiro">Quanto tempo depois de acordar você fuma o 1º cigarro?</label>
+      <select id="o-primeiro">
+        <option value="3">Nos primeiros 5 minutos</option>
+        <option value="2">De 6 a 30 minutos</option>
+        <option value="1">De 31 a 60 minutos</option>
+        <option value="0">Depois de 60 minutos</option>
+      </select>
+
+      <label for="o-preco">Preço do maço (R$)</label>
+      <input id="o-preco" type="number" inputmode="decimal" step="0.5" min="0" value="10">
+
+      <button class="btn" style="margin-top:22px">Começar minha jornada</button>
+    </form>
+  </section>
+
+  <!-- ============ HOME / PULMÃO ============ -->
+  <section class="screen" id="s-home">
+    <div class="top">
+      <div class="logo">Respira<span>.</span></div>
+      <div class="chip" id="h-dia">Dia 0</div>
+    </div>
+    <p class="muted" id="h-ola">Olá!</p>
+
+    <div class="lung-wrap" id="lung-home"></div>
+    <div class="score">
+      <b id="h-score">0%</b>
+      <small id="h-label">saúde do pulmão</small>
+    </div>
+    <div class="bar"><i id="h-bar"></i></div>
+
+    <div class="grid">
+      <div class="stat"><b id="h-semfumar">0</b><span>dias sem fumar</span></div>
+      <div class="stat"><b id="h-evitados">0</b><span>cigarros evitados</span></div>
+      <div class="stat"><b id="h-economia">R$0</b><span>economizados</span></div>
+    </div>
+
+    <div class="card soft" id="h-quitbox"></div>
+
+    <div class="card">
+      <h2>Hoje eu fumei</h2>
+      <div class="stepper">
+        <button type="button" id="t-menos">−</button>
+        <input id="t-hoje" type="number" readonly value="0">
+        <button type="button" id="t-mais">+</button>
+      </div>
+      <p class="muted" style="margin-top:10px" id="t-msg"></p>
+    </div>
+
+    <div class="card">
+      <h2>O que está acontecendo no seu corpo</h2>
+      <div id="h-marcos"></div>
+    </div>
+  </section>
+
+  <!-- ============ DIÁRIO ============ -->
+  <section class="screen" id="s-diario">
+    <div class="top"><h1>Meu diário</h1></div>
+    <p class="muted">Conte como você está se sentindo. Registrar ajuda a entender gatilhos e a ver o quanto você já evoluiu.</p>
+
+    <div class="card" style="margin-top:16px">
+      <label style="margin-top:0">Como você está hoje?</label>
+      <div class="moods" id="moods"></div>
+
+      <label for="d-texto">Quer contar mais?</label>
+      <textarea id="d-texto" placeholder="Ex.: Senti vontade depois do café, mas fui caminhar e passou."></textarea>
+
+      <label for="d-vontade">Vontade de fumar: <b id="d-vontade-v">5</b>/10</label>
+      <input id="d-vontade" type="range" min="0" max="10" value="5" style="padding:0;border:0;accent-color:var(--brand)">
+
+      <div class="rec" id="rec">
+        <button class="btn ghost small" type="button" id="rec-btn">🎙️ Gravar áudio</button>
+        <span class="pulse"></span>
+        <span class="muted" id="rec-status"></span>
+      </div>
+
+      <button class="btn" style="margin-top:16px" id="d-salvar">Salvar registro</button>
+    </div>
+
+    <div class="card">
+      <h2>Minha evolução</h2>
+      <div id="d-lista"><p class="muted">Seus registros vão aparecer aqui.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ AJUDA / ENCAMINHAMENTO ============ -->
+  <section class="screen" id="s-ajuda">
+    <div class="top"><h1>Seu encaminhamento</h1></div>
+    <p class="muted">O tratamento para parar de fumar é <b>gratuito pelo SUS</b>, com acompanhamento e medicamentos.</p>
+
+    <div class="receipt" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <b>Resumo para levar à UBS</b>
+        <span class="chip" id="r-data"></span>
+      </div>
+      <dl id="r-dados"></dl>
+      <p class="muted" style="margin-top:12px;font-size:13px" id="r-sugestao"></p>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="step">
+        <div class="n">1</div>
+        <div style="flex:1">
+          <h3>Vá ao posto de saúde mais próximo</h3>
+          <p>Procure a Unidade Básica de Saúde (UBS) do seu bairro e diga que quer parar de fumar.</p>
+          <button class="btn small no-print" id="b-ubs">📍 Encontrar UBS perto de mim</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">
+        <div class="n">2</div>
+        <div style="flex:1">
+          <h3>Programa Nacional de Controle do Tabagismo</h3>
+          <p>Programa do Ministério da Saúde e do INCA com consultas e grupos de apoio para quem quer parar de fumar.</p>
+          <div class="row no-print">
+            <a class="btn small ghost" href="https://www.gov.br/inca/pt-br" target="_blank" rel="noopener">Site do INCA</a>
+            <a class="btn small ghost" href="tel:136">📞 Disque Saúde 136</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">
+        <div class="n">3</div>
+        <div style="flex:1">
+          <h3>Adesivos, gomas e receita</h3>
+          <p>Na UBS, o profissional de saúde avalia você e faz a <b>receita</b> do tratamento indicado, que é entregue de graça:</p>
+          <div class="tags">
+            <span class="tag">Adesivo de nicotina</span>
+            <span class="tag">Goma de mascar</span>
+            <span class="tag">Pastilha</span>
+            <span class="tag">Bupropiona</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row no-print">
+      <button class="btn ghost" id="b-print">🖨️ Imprimir</button>
+      <button class="btn" id="b-share">Compartilhar</button>
+    </div>
+    <p class="disclaimer">O Respira não substitui a consulta. Os medicamentos só devem ser usados com orientação e receita de um profissional de saúde.</p>
+  </section>
+
+  <!-- ============ PERFIL ============ -->
+  <section class="screen" id="s-perfil">
+    <div class="top"><h1>Perfil</h1></div>
+    <div class="card">
+      <label style="margin-top:0" for="p-nome">Nome</label>
+      <input id="p-nome">
+      <label for="p-cig">Cigarros por dia (antes do tratamento)</label>
+      <input id="p-cig" type="number" min="1">
+      <label for="p-anos">Anos fumando</label>
+      <input id="p-anos" type="number" min="0">
+      <label for="p-preco">Preço do maço (R$)</label>
+      <input id="p-preco" type="number" step="0.5" min="0">
+      <label for="p-quit">Data em que parei (ou vou parar)</label>
+      <input id="p-quit" type="date">
+      <button class="btn" style="margin-top:18px" id="p-salvar">Salvar</button>
+    </div>
+    <button class="btn ghost" id="p-reset">Recomeçar do zero</button>
+  </section>
+
+</div>
+
+<nav class="tabs hidden" id="tabs">
+  <button data-go="home" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M12 11c-1 1-2 1.5-3 1.5"/><path d="M12 11c1 1 2 1.5 3 1.5"/><path d="M8.5 7C5 7 3 12 3 16.5 3 19 4.5 21 7 21c2.5 0 3-2 3-4V10"/><path d="M15.5 7C19 7 21 12 21 16.5 21 19 19.5 21 17 21c-2.5 0-3-2-3-4V10"/></svg>
+    Pulmão
+  </button>
+  <button data-go="diario">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    Diário
+  </button>
+  <button data-go="ajuda">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><path d="M12 7v6M9 10h6"/></svg>
+    Tratamento
+  </button>
+  <button data-go="perfil">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    Perfil
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const KEY = 'respira:v1';
+  const DAY = 86400000;
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+
+  /* ---------------- Estado ---------------- */
+  let state = load();
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  }
+
+  /* ---------------- Áudio (IndexedDB) ---------------- */
+  const db = new Promise(res => {
+    try {
+      const r = indexedDB.open('respira-audio', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('a');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch { res(null); }
+  });
+  async function putAudio(id, blob) {
+    const d = await db; if (!d) return;
+    return new Promise(r => { const t = d.transaction('a', 'readwrite'); t.objectStore('a').put(blob, id); t.oncomplete = r; t.onerror = r; });
+  }
+  async function getAudio(id) {
+    const d = await db; if (!d) return null;
+    return new Promise(r => { const q = d.transaction('a').objectStore('a').get(id); q.onsuccess = () => r(q.result); q.onerror = () => r(null); });
+  }
+
+  /* ---------------- Cálculos ---------------- */
+  // Maços-ano: (cigarros/dia ÷ 20) × anos fumando
+  const packYears = s => (s.cig / 20) * s.anos;
+
+  // Dependência (Índice de Gravidade do Tabagismo — HSI)
+  function dependencia(s) {
+    const c = s.cig <= 10 ? 0 : s.cig <= 20 ? 1 : s.cig <= 30 ? 2 : 3;
+    const t = c + Number(s.primeiro);
+    return t <= 1 ? 'Baixa' : t <= 4 ? 'Moderada' : 'Alta';
+  }
+
+  function daysSmokeFree(s) {
+    // Conta dias seguidos até hoje sem cigarro registrado, a partir da data de parada
+    if (!s.quit) return 0;
+    const start = new Date(s.quit + 'T00:00:00').getTime();
+    const now = Date.now();
+    if (now < start) return 0;
+    let lastSmoke = null;
+    for (const [d, n] of Object.entries(s.log)) {
+      const t = new Date(d + 'T00:00:00').getTime();
+      if (n > 0 && t >= start && (lastSmoke === null || t > lastSmoke)) lastSmoke = t;
+    }
+    if (lastSmoke === null) return Math.floor((now - start) / DAY);
+    return Math.max(0, Math.floor((now - lastSmoke) / DAY) - 1);
+  }
+
+  function cigarettesAvoided(s) {
+    const start = new Date(s.created).setHours(0, 0, 0, 0);
+    const days = Math.max(0, Math.floor((Date.now() - start) / DAY) + 1);
+    let smoked = 0, counted = 0;
+    for (const [d, n] of Object.entries(s.log)) {
+      if (new Date(d + 'T00:00:00').getTime() >= start) { smoked += n; counted++; }
+    }
+    // dias sem registro (antes da data de parada) contam como fumados no ritmo de antes
+    let assumed = 0;
+    const quitT = s.quit ? new Date(s.quit + 'T00:00:00').getTime() : Infinity;
+    for (let i = 0; i < days; i++) {
+      const t = start + i * DAY;
+      const k = new Date(t).toISOString().slice(0, 10);
+      if (!(k in s.log) && t < quitT) assumed += s.cig;
+    }
+    return Math.max(0, days * s.cig - smoked - assumed);
+  }
+
+  // Sujeira inicial (0..1) de acordo com a carga tabágica
+  const initialDirt = s => Math.min(0.95, 0.25 + packYears(s) / 30 * 0.7);
+
+  // Saúde do pulmão (0..100)
+  function lungHealth(s) {
+    const d0 = initialDirt(s);
+    const free = daysSmokeFree(s);
+    // recuperação: rápida nas primeiras semanas, mais lenta até ~1 ano
+    const rec = 1 - Math.exp(-free / 90);
+    // redução também ajuda um pouco
+    const today = s.log[todayKey()];
+    const reduction = today != null && free === 0 ? Math.max(0, 1 - today / s.cig) * 0.15 : 0;
+    const dirt = d0 * (1 - Math.min(1, rec + reduction));
+    return { health: Math.round((1 - dirt) * 100), dirt };
+  }
+
+  const MARCOS = [
+    { d: 1 / 72, t: '20 minutos', x: 'Pressão arterial e batimentos voltam ao normal.' },
+    { d: 0.5, t: '12 horas', x: 'O monóxido de carbono no sangue cai ao nível normal.' },
+    { d: 2, t: '2 dias', x: 'Olfato e paladar começam a melhorar.' },
+    { d: 14, t: '2 semanas', x: 'Circulação melhora e respirar fica mais fácil.' },
+    { d: 30, t: '1 mês', x: 'Menos tosse e falta de ar; os cílios do pulmão se recuperam.' },
+    { d: 365, t: '1 ano', x: 'O risco de doença do coração cai pela metade.' },
+    { d: 1825, t: '5 anos', x: 'Risco de AVC se aproxima ao de quem nunca fumou.' },
+    { d: 3650, t: '10 anos', x: 'Risco de câncer de pulmão cai cerca de 50%.' },
+  ];
+
+  /* ---------------- Pulmão SVG ---------------- */
+  function seeded(n) { let x = Math.sin(n * 999) * 10000; return x - Math.floor(x); }
+  const mix = (a, b, t) => {
+    const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const [A, B] = [p(a), p(b)];
+    return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  };
+
+  function lungSVG(dirt, id) {
+    const base = mix('#ffb3c1', '#8f7f78', dirt);
+    const deep = mix('#ff8fa6', '#5f514c', dirt);
+    const L = 'M88 62 C60 60 30 100 22 150 C14 200 20 245 46 262 C70 278 104 268 112 240 L116 120 C116 90 108 64 88 62 Z';
+    const R = 'M152 62 C180 60 210 100 218 150 C226 200 220 245 194 262 C170 278 136 268 128 240 L124 120 C124 90 132 64 152 62 Z';
+    let spots = '';
+    const n = Math.round(dirt * 60);
+    for (let i = 0; i < n; i++) {
+      const left = i % 2 === 0;
+      const cx = left ? 30 + seeded(i + 1) * 80 : 130 + seeded(i + 1) * 80;
+      const cy = 85 + seeded(i + 7) * 175;
+      const r = 3 + seeded(i + 3) * 9 * (0.5 + dirt);
+      spots += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="#3b302c" opacity="${(0.12 + seeded(i + 5) * 0.35 * dirt).toFixed(2)}"/>`;
+    }
+    const face = dirt > 0.55
+      ? '<path d="M100 205 q20 -12 40 0" stroke="#3b302c" stroke-width="4" fill="none" stroke-linecap="round"/>'
+      : dirt > 0.3
+        ? '<path d="M102 202 h36" stroke="#5a4842" stroke-width="4" stroke-linecap="round"/>'
+        : '<path d="M100 196 q20 16 40 0" stroke="#c2475f" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    const cheeks = dirt < 0.4 ? '<circle cx="86" cy="196" r="7" fill="#ff7d95" opacity=".35"/><circle cx="154" cy="196" r="7" fill="#ff7d95" opacity=".35"/>' : '';
+    const sparkles = dirt < 0.15 ? '<g fill="#ffd36e"><path d="M226 70 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M14 110 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/></g>' : '';
+    const smoke = dirt > 0.6 ? `<g fill="#9a8f8a" opacity=".35"><circle cx="120" cy="20" r="8"><animate attributeName="cy" values="30;0" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;0" dur="3s" repeatCount="indefinite"/></circle></g>` : '';
+    return `
+    <svg viewBox="0 0 240 290" role="img" aria-label="Pulmão com ${Math.round((1 - dirt) * 100)}% de saúde">
+      <defs>
+        <radialGradient id="g${id}" cx="40%" cy="35%" r="75%">
+          <stop offset="0" stop-color="${mix(base, '#ffffff', 0.35)}"/>
+          <stop offset="1" stop-color="${deep}"/>
+        </radialGradient>
+        <clipPath id="c${id}"><path d="${L}"/><path d="${R}"/></clipPath>
+      </defs>
+      ${smoke}
+      <ellipse cx="120" cy="280" rx="80" ry="6" fill="#000" opacity=".05"/>
+      <g class="breathe" style="--breath:${(3.2 + dirt * 2.5).toFixed(1)}s">
+        <path d="${L}" fill="url(#g${id})"/>
+        <path d="${R}" fill="url(#g${id})"/>
+        <g clip-path="url(#c${id})">${spots}</g>
+        <g stroke="${mix('#ffffff', '#d8cfcb', dirt)}" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7">
+          <path d="M108 120 C95 140 80 150 62 170"/><path d="M90 146 C82 170 70 190 60 214"/>
+          <path d="M132 120 C145 140 160 150 178 170"/><path d="M150 146 C158 170 170 190 180 214"/>
+        </g>
+        <path d="M120 18 V112 M120 112 C112 118 106 122 100 126 M120 112 C128 118 134 122 140 126" stroke="${mix('#ffc6d1', '#a69995', dirt)}" stroke-width="12" fill="none" stroke-linecap="round"/>
+        <circle cx="96" cy="176" r="6" fill="#1d2430"/><circle cx="144" cy="176" r="6" fill="#1d2430"/>
+        <circle cx="98" cy="174" r="2" fill="#fff"/><circle cx="146" cy="174" r="2" fill="#fff"/>
+        ${cheeks}${face}
+      </g>
+      ${sparkles}
+    </svg>`;
+  }
+
+  /* ---------------- Navegação ---------------- */
+  function go(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + name));
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.go === name));
+    $('#tabs').classList.toggle('hidden', name === 'onboard');
+    window.scrollTo(0, 0);
+    render(name);
+  }
+  document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => go(b.dataset.go));
+
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  const brl = v => 'R$' + (v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'mil' : Math.round(v));
+  const fmtDate = d => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+
+  /* ---------------- Render ---------------- */
+  function render(name) {
+    if (name === 'onboard') $('#lung-onboard').innerHTML = lungSVG(0.5, 'o');
+    if (!state) return;
+    if (name === 'home') renderHome();
+    if (name === 'diario') renderDiario();
+    if (name === 'ajuda') renderAjuda();
+    if (name === 'perfil') renderPerfil();
+  }
+
+  function renderHome() {
+    const s = state;
+    const { health, dirt } = lungHealth(s);
+    const free = daysSmokeFree(s);
+    const avoided = cigarettesAvoided(s);
+    const day = Math.floor((Date.now() - new Date(s.created).setHours(0, 0, 0, 0)) / DAY) + 1;
+    $('#h-dia').textContent = 'Dia ' + day;
+    $('#h-ola').textContent = `Olá, ${s.nome}! ` + (health > 80 ? 'Seu pulmão está radiante 💗' : health > 55 ? 'Seu pulmão está melhorando a cada dia.' : 'Cada dia sem cigarro limpa um pouco mais.');
+    $('#lung-home').innerHTML = lungSVG(dirt, 'h');
+    $('#h-score').textContent = health + '%';
+    $('#h-label').textContent = health > 80 ? 'pulmão saudável' : health > 55 ? 'pulmão em recuperação' : 'pulmão precisando de cuidado';
+    requestAnimationFrame(() => $('#h-bar').style.width = health + '%');
+    $('#h-semfumar').textContent = free;
+    $('#h-evitados').textContent = avoided;
+    $('#h-economia').textContent = brl(avoided / 20 * s.preco);
+
+    const qb = $('#h-quitbox');
+    if (!s.quit || new Date(s.quit + 'T00:00:00') > new Date()) {
+      qb.innerHTML = `<h2>${s.quit ? 'Sua data para parar: ' + fmtDate(s.quit + 'T00:00:00') : 'Pronto para o primeiro dia?'}</h2>
+        <p class="muted" style="margin-bottom:12px">Quando parar, toque no botão abaixo. O pulmão começa a se limpar na hora.</p>
+        <button class="btn ok" id="b-parei">Parei de fumar hoje 🎉</button>`;
+      $('#b-parei').onclick = () => { state.quit = todayKey(); state.log[todayKey()] = 0; save(); toast('Que orgulho! O primeiro dia começou.'); renderHome(); };
+    } else {
+      qb.innerHTML = `<h2>Sem fumar desde ${fmtDate(s.quit + 'T00:00:00')}</h2>
+        <p class="muted">Continue registrando no diário como você está. Se tiver uma recaída, tudo bem: registre e siga em frente.</p>`;
+    }
+
+    const n = s.log[todayKey()] ?? 0;
+    $('#t-hoje').value = n;
+    $('#t-msg').textContent = n === 0 ? 'Nenhum cigarro hoje. Seu pulmão agradece!' : n < s.cig ? `${s.cig - n} a menos que o seu normal. Está no caminho!` : 'Tudo bem. Amanhã é uma nova chance.';
+
+    const elapsed = free;
+    $('#h-marcos').innerHTML = MARCOS.map(m => {
+      const done = s.quit && elapsed >= m.d && new Date(s.quit + 'T00:00:00') <= new Date();
+      return `<div class="mile ${done ? 'done' : ''}"><div class="dot">${done ? '✓' : ''}</div><div><b>${m.t}</b><span>${m.x}</span></div></div>`;
+    }).join('');
+  }
+  $('#t-mais').onclick = () => { state.log[todayKey()] = (state.log[todayKey()] ?? 0) + 1; save(); renderHome(); };
+  $('#t-menos').onclick = () => { state.log[todayKey()] = Math.max(0, (state.log[todayKey()] ?? 0) - 1); save(); renderHome(); };
+
+  /* ---------- Diário ---------- */
+  const MOODS = [['😣', 'Péssimo'], ['😟', 'Difícil'], ['😐', 'Ok'], ['🙂', 'Bem'], ['😄', 'Ótimo']];
+  let mood = 3, audioBlob = null, rec = null;
+  $('#moods').innerHTML = MOODS.map(([e, t], i) => `<button type="button" class="mood ${i === mood ? 'sel' : ''}" data-i="${i}">${e}<small>${t}</small></button>`).join('');
+  $('#moods').onclick = e => {
+    const b = e.target.closest('.mood'); if (!b) return;
+    mood = +b.dataset.i;
+    document.querySelectorAll('.mood').forEach(m => m.classList.toggle('sel', m === b));
+  };
+  $('#d-vontade').oninput = e => $('#d-vontade-v').textContent = e.target.value;
+
+  $('#rec-btn').onclick = async () => {
+    if (rec && rec.state === 'recording') { rec.stop(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const chunks = [];
+      rec = new MediaRecorder(stream);
+      rec.ondataavailable = e => chunks.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        audioBlob = new Blob(chunks, { type: rec.mimeType });
+        $('#rec').classList.remove('on');
+        $('#rec-btn').textContent = '🎙️ Regravar';
+        $('#rec-status').textContent = 'Áudio pronto ✓';
+      };
+      rec.start();
+      $('#rec').classList.add('on');
+      $('#rec-btn').textContent = '⏹ Parar';
+      $('#rec-status').textContent = 'Gravando…';
+    } catch {
+      toast('Não foi possível acessar o microfone.');
+    }
+  };
+
+  $('#d-salvar').onclick = async () => {
+    const texto = $('#d-texto').value.trim();
+    if (!texto && !audioBlob) { toast('Escreva algo ou grave um áudio.'); return; }
+    const id = 'e' + Date.now();
+    if (audioBlob) await putAudio(id, audioBlob);
+    state.diario.unshift({ id, t: Date.now(), mood, texto, vontade: +$('#d-vontade').value, audio: !!audioBlob, health: lungHealth(state).health });
+    save();
+    $('#d-texto').value = ''; audioBlob = null;
+    $('#rec-btn').textContent = '🎙️ Gravar áudio'; $('#rec-status').textContent = '';
+    toast('Registro salvo 💗');
+    renderDiario();
+  };
+
+  function esc(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  function renderDiario() {
+    const list = $('#d-lista');
+    if (!state.diario.length) { list.innerHTML = '<p class="muted">Seus registros vão aparecer aqui.</p>'; return; }
+    list.innerHTML = state.diario.map(e => `
+      <div class="entry">
+        <div class="h"><span>${MOODS[e.mood][0]} ${new Date(e.t).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span><span>vontade ${e.vontade}/10 · pulmão ${e.health}%</span></div>
+        ${e.texto ? `<p>${esc(e.texto)}</p>` : ''}
+        ${e.audio ? `<audio controls data-a="${e.id}"></audio>` : ''}
+      </div>`).join('');
+    list.querySelectorAll('audio[data-a]').forEach(async a => {
+      const b = await getAudio(a.dataset.a);
+      if (b) a.src = URL.createObjectURL(b); else a.replaceWith(Object.assign(document.createElement('p'), { className: 'muted', textContent: 'Áudio indisponível neste aparelho.' }));
+    });
+  }
+
+  /* ---------- Encaminhamento ---------- */
+  function renderAjuda() {
+    const s = state;
+    const dep = dependencia(s);
+    $('#r-data').textContent = new Date().toLocaleDateString('pt-BR');
+    $('#r-dados').innerHTML = [
+      ['Nome', esc(s.nome)],
+      ['Cigarros por dia', s.cig],
+      ['Tempo fumando', s.anos + (s.anos === 1 ? ' ano' : ' anos')],
+      ['Carga tabágica', packYears(s).toFixed(1).replace('.', ',') + ' maços-ano'],
+      ['Grau de dependência', dep],
+      ['1º cigarro do dia', ['após 60 min', '31–60 min', '6–30 min', 'até 5 min'][s.primeiro]],
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    $('#r-sugestao').textContent = dep === 'Baixa'
+      ? 'Dependência baixa: a abordagem com grupos de apoio costuma ajudar bastante. Converse com o profissional sobre a necessidade de medicamento.'
+      : 'Dependência ' + dep.toLowerCase() + ': pergunte ao profissional da UBS sobre a terapia de reposição de nicotina (adesivo e goma) junto com o acompanhamento.';
+  }
+  $('#b-ubs').onclick = () => {
+    const open = q => window.open(q, '_blank', 'noopener');
+    const fallback = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('UBS posto de saúde perto de mim');
+    if (!navigator.geolocation) return open(fallback);
+    toast('Buscando sua localização…');
+    navigator.geolocation.getCurrentPosition(
+      p => open(`https://www.google.com/maps/search/UBS+posto+de+sa%C3%BAde/@${p.coords.latitude},${p.coords.longitude},15z`),
+      () => open(fallback),
+      { timeout: 8000 }
+    );
+  };
+  $('#b-print').onclick = () => window.print();
+  $('#b-share').onclick = async () => {
+    const s = state;
+    const txt = `Encaminhamento – Programa de Controle do Tabagismo (SUS)\nNome: ${s.nome}\nCigarros/dia: ${s.cig}\nAnos fumando: ${s.anos}\nCarga tabágica: ${packYears(s).toFixed(1)} maços-ano\nDependência: ${dependencia(s)}\n\nGostaria de participar do programa e avaliar o uso de adesivos/gomas de nicotina.`;
+    if (navigator.share) { try { await navigator.share({ title: 'Meu encaminhamento', text: txt }); } catch {} }
+    else { try { await navigator.clipboard.writeText(txt); toast('Resumo copiado!'); } catch { toast('Não foi possível copiar.'); } }
+  };
+
+  /* ---------- Perfil ---------- */
+  function renderPerfil() {
+    $('#p-nome').value = state.nome; $('#p-cig').value = state.cig; $('#p-anos').value = state.anos;
+    $('#p-preco').value = state.preco; $('#p-quit').value = state.quit || '';
+  }
+  $('#p-salvar').onclick = () => {
+    Object.assign(state, {
+      nome: $('#p-nome').value.trim() || state.nome,
+      cig: Math.max(1, +$('#p-cig').value || state.cig),
+      anos: Math.max(0, +$('#p-anos').value || 0),
+      preco: Math.max(0, +$('#p-preco').value || 0),
+      quit: $('#p-quit').value || null,
+    });
+    save(); toast('Perfil atualizado');
+  };
+  $('#p-reset').onclick = () => {
+    if (!confirm('Apagar todos os seus dados e recomeçar?')) return;
+    try { localStorage.removeItem(KEY); } catch {}
+    state = null; go('onboard');
+  };
+
+  /* ---------- Onboarding ---------- */
+  document.querySelectorAll('[data-step]').forEach(b => b.onclick = () => {
+    const i = $('#o-cig'); i.value = Math.max(1, Math.min(100, (+i.value || 0) + +b.dataset.step));
+  });
+  $('#f-onboard').onsubmit = e => {
+    e.preventDefault();
+    state = {
+      nome: $('#o-nome').value.trim(),
+      cig: Math.max(1, +$('#o-cig').value),
+      anos: Math.max(0, +$('#o-anos').value),
+      primeiro: +$('#o-primeiro').value,
+      preco: Math.max(0, +$('#o-preco').value || 0),
+      created: Date.now(),
+      quit: null,
+      log: {},
+      diario: [],
+    };
+    save();
+    go('ajuda');
+    toast('Este é o seu encaminhamento 👇');
+  };
+
+  go(state ? 'home' : 'onboard');
+})();
+</script>
+</body>
+</html>
